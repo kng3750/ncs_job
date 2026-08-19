@@ -17,9 +17,22 @@ export default function Home(){
  const [jobs,setJobs]=useState<Job[]>(fallbackJobs),[query,setQuery]=useState(""),[submitted,setSubmitted]=useState("");
  const [region,setRegion]=useState(filters.region[0]),[field,setField]=useState(filters.field[0]),[employment,setEmployment]=useState(filters.employment[0]);
  const [loading,setLoading]=useState(true),[live,setLive]=useState(false);
- useEffect(()=>{fetch("/api/jobs?numOfRows=30").then(r=>r.json()).then(data=>{if(data.jobs?.length){setJobs(data.jobs);setLive(true)}}).catch(()=>undefined).finally(()=>setLoading(false))},[]);
+ useEffect(()=>{void loadJobs()},[]);
  const visible=useMemo(()=>jobs.filter(job=>{const text=`${job.title} ${job.institution} ${job.field}`.toLowerCase();return(!submitted||text.includes(submitted.toLowerCase()))&&(region==="전체 지역"||job.region.includes(region))&&(field==="전체 직종"||job.field.includes(field))&&(employment==="고용 형태"||job.employment.includes(employment))}),[jobs,submitted,region,field,employment]);
- function search(e:FormEvent){e.preventDefault();setSubmitted(query.trim())} function reset(){setQuery("");setSubmitted("");setRegion(filters.region[0]);setField(filters.field[0]);setEmployment(filters.employment[0])}
+ async function loadJobs(searchQuery=""){
+  setLoading(true);
+  try{
+   const params=new URLSearchParams({numOfRows:"100"});
+   if(searchQuery)params.set("q",searchQuery);
+   const response=await fetch(`/api/jobs?${params}`);
+   const data=await response.json();
+   if(data.jobs?.length){setJobs(data.jobs);setLive(true)}
+   else if(searchQuery){setJobs([])}
+  }catch{
+   // API 장애 시 현재 목록을 유지합니다.
+  }finally{setLoading(false)}
+ }
+ function search(e:FormEvent){e.preventDefault();const value=query.trim();setSubmitted(value);void loadJobs(value)} function reset(){setQuery("");setSubmitted("");setRegion(filters.region[0]);setField(filters.field[0]);setEmployment(filters.employment[0]);void loadJobs()}
  return <>
  <header className="site-header"><div className="header-inner"><a className="brand" href="#top" aria-label="공공일자리 홈"><span className="brand-mark">P</span><span>공공<span>일자리</span></span></a><nav aria-label="주요 메뉴"><a className="active" href="#jobs">채용공고</a><a href="#guide">이용안내</a><a href="https://www.gojobs.go.kr" target="_blank" rel="noreferrer">나라일터 ↗</a></nav><div className="official"><span>✓</span> 인사혁신처 공공데이터 연계</div></div></header>
  <main id="top"><section className="hero"><div className="hero-grid" aria-hidden="true"/><div className="hero-inner"><div className="hero-copy"><p className="eyebrow"><i/> PUBLIC JOBS, ONE PLACE</p><h1>당신의 다음 공공일자리,<br/><strong>한곳에서 찾으세요.</strong></h1><p className="hero-desc">중앙부처부터 지방자치단체, 교육청, 공공기관까지.<br/>현직 채용 담당자가 직접 등록한 신뢰도 높은 공고를 실시간으로 만나보세요.</p><div className="trust-row"><span>✓ 실시간 연계</span><span>✓ 공식 기관 등록</span><span>✓ 누구나 무료</span></div></div><div className="hero-visual" aria-hidden="true"><div className="orb"><span className="building">▥</span><div className="orbit orbit-one"><b>행정</b></div><div className="orbit orbit-two"><b>기술</b></div><div className="orbit orbit-three"><b>연구</b></div></div></div></div></section>
